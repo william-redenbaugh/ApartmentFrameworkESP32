@@ -1,0 +1,6 @@
+[submodule "ESP32IRBlaster/include/nanopb"]
+	path = ESP32IRBlaster/include/nanopb
+	url = git@github.com:nanopb/nanopb.git
+[submodule "ESP32IRBlaster/lib/nanopb"]
+	path = ESP32IRBlaster/lib/nanopb
+	url = git@github.com:nanopb/nanopb.git
