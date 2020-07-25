@@ -1,9 +1,5 @@
-
-// Data serializing and deserialization protobuffer stuff
-#include "pb.h"
-#include "pb_common.h"
-#include "pb_encode.h"
-#include "pb_decode.h"
+#ifndef _ESP_WIFI_SETUP_H
+#define _ESP_WIFI_SETUP_H
 
 // Our real time operating system stuff, quite a bit here huh
 #include "freertos/FreeRTOS.h"
@@ -32,16 +28,4 @@
 #include "lwip/sys.h"
 #include <lwip/netdb.h>
 
-void setup_esp32_subsystems(void);
-
-// Since the esp-idf is technically C and not cpp. 
-extern "C" void app_main(void) {
-    
-}
-
-inline void setup_esp32_subsystems(void){
-    // Setting up our non volatile flash system in the esp32
-    ESP_ERROR_CHECK(nvs_flash_init());
-    tcpip_adapter_init();
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-}
+#endif

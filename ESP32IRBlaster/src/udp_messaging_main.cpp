@@ -17,7 +17,7 @@ static void udp_server_thread(void *parameters){
     // Can the compiler stop throwing errors for one seccond plz 
     (void)parameters;
     for(;;){
-        thd_delay_ms(1000);
+        thdDelayMs(1000);
     }
 }
 
