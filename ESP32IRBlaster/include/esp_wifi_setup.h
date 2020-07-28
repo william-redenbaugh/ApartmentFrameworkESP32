@@ -28,4 +28,12 @@
 #include "lwip/sys.h"
 #include <lwip/netdb.h>
 
+#define EXAMPLE_ESP_WIFI_SSID      "mywifissid"
+#define EXAMPLE_ESP_WIFI_PASS      "mywifipass"
+#define EXAMPLE_MAX_STA_CONN       (3)
+
+static const char *TAG = "wifi softAP";
+
+void setup_esp32_wifi(void);
+
 #endif

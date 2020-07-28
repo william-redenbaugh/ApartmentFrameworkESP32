@@ -33,15 +33,31 @@
 #include <lwip/netdb.h>
 
 void setup_esp32_subsystems(void);
+inline void setup_flash();
 
 // Since the esp-idf is technically C and not cpp. 
 extern "C" void app_main(void) {
-    
+    setup_esp32_subsystems();
 }
 
 inline void setup_esp32_subsystems(void){
-    // Setting up our non volatile flash system in the esp32
-    ESP_ERROR_CHECK(nvs_flash_init());
-    tcpip_adapter_init();
+    // Setting up flash module 
+    setup_flash();
+
+    // Setup ESP event loop defaults
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    // Setting up esp32 wifi subsystemss
+    void setup_esp32_wifi(void);
+}
+
+inline void setup_flash(void){
+    // Setting up our non volatile flash system in the esp32
+    
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
 }

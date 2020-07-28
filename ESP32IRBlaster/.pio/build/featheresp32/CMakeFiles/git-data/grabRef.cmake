@@ -15,18 +15,18 @@
 
 set(HEAD_HASH)
 
-file(READ "/home/wredenba/git/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/HEAD" HEAD_CONTENTS LIMIT 1024)
+file(READ "/home/wredenba/git/ApartmentFrameworkV2/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/HEAD" HEAD_CONTENTS LIMIT 1024)
 
 string(STRIP "${HEAD_CONTENTS}" HEAD_CONTENTS)
 if(HEAD_CONTENTS MATCHES "ref")
 	# named branch
 	string(REPLACE "ref: " "" HEAD_REF "${HEAD_CONTENTS}")
-	if(EXISTS "/home/wredenba/git/ApartmentFrameworkESP32/.git/${HEAD_REF}")
-		configure_file("/home/wredenba/git/ApartmentFrameworkESP32/.git/${HEAD_REF}" "/home/wredenba/git/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/head-ref" COPYONLY)
+	if(EXISTS "/home/wredenba/git/ApartmentFrameworkV2/.git/modules/ApartmentFrameworkESP32/${HEAD_REF}")
+		configure_file("/home/wredenba/git/ApartmentFrameworkV2/.git/modules/ApartmentFrameworkESP32/${HEAD_REF}" "/home/wredenba/git/ApartmentFrameworkV2/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/head-ref" COPYONLY)
 	else()
-		if(EXISTS "/home/wredenba/git/ApartmentFrameworkESP32/.git/packed-refs")
-			configure_file("/home/wredenba/git/ApartmentFrameworkESP32/.git/packed-refs" "/home/wredenba/git/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/packed-refs" COPYONLY)
-			file(READ "/home/wredenba/git/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/packed-refs" PACKED_REFS)
+		if(EXISTS "/home/wredenba/git/ApartmentFrameworkV2/.git/modules/ApartmentFrameworkESP32/packed-refs")
+			configure_file("/home/wredenba/git/ApartmentFrameworkV2/.git/modules/ApartmentFrameworkESP32/packed-refs" "/home/wredenba/git/ApartmentFrameworkV2/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/packed-refs" COPYONLY)
+			file(READ "/home/wredenba/git/ApartmentFrameworkV2/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/packed-refs" PACKED_REFS)
 			if(${PACKED_REFS} MATCHES "([0-9a-z]*) ${HEAD_REF}")
 				set(HEAD_HASH "${CMAKE_MATCH_1}")
 			endif()
@@ -34,10 +34,10 @@ if(HEAD_CONTENTS MATCHES "ref")
 	endif()
 else()
 	# detached HEAD
-	configure_file("/home/wredenba/git/ApartmentFrameworkESP32/.git/HEAD" "/home/wredenba/git/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/head-ref" COPYONLY)
+	configure_file("/home/wredenba/git/ApartmentFrameworkV2/.git/modules/ApartmentFrameworkESP32/HEAD" "/home/wredenba/git/ApartmentFrameworkV2/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/head-ref" COPYONLY)
 endif()
 
 if(NOT HEAD_HASH)
-	file(READ "/home/wredenba/git/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/head-ref" HEAD_HASH LIMIT 1024)
+	file(READ "/home/wredenba/git/ApartmentFrameworkV2/ApartmentFrameworkESP32/ESP32IRBlaster/.pio/build/featheresp32/CMakeFiles/git-data/head-ref" HEAD_HASH LIMIT 1024)
 	string(STRIP "${HEAD_HASH}" HEAD_HASH)
 endif()
