@@ -14,9 +14,9 @@ void check_new_data(void);
 // To prevent ourselves from having too many local variables, we put them all 
 // In a single struct
 struct {
-    TaskHandle_t task_handle; 
-    int socket_handle = -1; 
-    uint8_t rx_buff[7000];
+    TaskHandle_t task_handle;   // Handler for our udp reading task. 
+    int socket_handle = -1;     // Handler ID for our UDP socket 
+    uint8_t rx_buff[7000];      // Buffer of information that we store our socket info into. 
 }msg_manage;
 
 /* 
@@ -120,8 +120,14 @@ void udp_management_thread(void *parameters){
 void check_new_data(void){
     struct sockaddr_in rev_addr; 
     int slen = 0; 
-    int len = recvfrom(msg_manage.socket_handle, msg_manage.rx_buff, sizeof(msg_manage.rx_buff), MSG_DONTWAIT, (struct sockaddr *) &rev_addr, (socklen_t *)&slen); 
-    if(len > 0){
-        Serial.println("Message received!");
+    int len = recvfrom( msg_manage.socket_handle,       // Handler that contains our Socket ID
+                        msg_manage.rx_buff,             // Buffer that we will put our socket information into
+                        sizeof(msg_manage.rx_buff),     // Size of the buffer that we are giving to the socket
+                        MSG_DONTWAIT,                   // Don't block until message has received, just keep through
+                        (struct sockaddr *) &rev_addr,  // Place where we can save the address that sends us our information
+                        (socklen_t *)&slen);            // Length of the socket packet. 
+    // Minimum message size is the messagedata header packet. 
+    if(len >= 16){
+
     }
 }
