@@ -1,9 +1,12 @@
 #include <Arduino.h>
+#include "udp_message_management.h"
+#include "wifi_setup.h"
 
 void setup() {
-  // put your setup code here, to run once:
+  wifi_connect();
+  start_message_management();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  vTaskDelete(NULL);
 }
