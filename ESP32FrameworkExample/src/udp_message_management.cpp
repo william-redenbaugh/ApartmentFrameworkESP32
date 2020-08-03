@@ -171,8 +171,8 @@ void check_req_res(void){
                 // Moving pointer up 16 spots, since we don't need the message
                 // Header anymore. 
                 (msg_manage.rx_buff + 16), 
-                // 
-                msg_manage.latest_message_length
+                // How long the message is minus the 
+                (msg_manage.latest_message_length - 16)
             };
             msg_subr.func(&msg_reg);
         }
