@@ -7,3 +7,6 @@
 [submodule "ESP32FrameworkExample/lib/nanopb"]
 	path = ESP32FrameworkExample/lib/nanopb
 	url = git@github.com:nanopb/nanopb.git
+[submodule "ESP32FrameworkExample/lib/chibi-lpwork"]
+	path = ESP32FrameworkExample/lib/chibi-lpwork
+	url = git@github.com:william-redenbaugh/chibi-lpwork.git

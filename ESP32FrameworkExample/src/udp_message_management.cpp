@@ -1,23 +1,43 @@
 #include "udp_message_management.h"
+#include <list> 
 
 // Constructor and destructor for our
 // message management stuff!
 void start_message_management(void);
 void end_message_management_thread(void);
-
 void create_udp_server(void);
 void udp_management_thread(void *parameters); 
 void check_new_data(void);
+void check_req_res(void);
+void message_management_req_thread(void *parameters);
+extern MessageSubroutineSetupStatus add_subroutine_check(MessageData_MessageType msg_type, void (*func)(MessageReq *ptr));
 
 #define SERVER_PORT 4040
 
 // To prevent ourselves from having too many local variables, we put them all 
 // In a single struct
 struct {
-    TaskHandle_t task_handle;   // Handler for our udp reading task. 
-    int socket_handle = -1;     // Handler ID for our UDP socket 
-    uint8_t rx_buff[7000];      // Buffer of information that we store our socket info into. 
+    TaskHandle_t udp_server_task_handle;           // Handler for our udp reading task. 
+    TaskHandle_t message_req_task_handle;
+    int socket_handle = -1;             // Handler ID for our UDP socket 
+    uint8_t rx_buff[7000];              // Buffer of information that we store our socket info into. 
+    MessageData latest_message_data;    // Place where we can hold our latest message data. 
+    int latest_message_length = 0; 
 }msg_manage;
+
+/*
+* @brief: Struct that helps us deal with message subroutine callbackets
+* @notes: it's possible that we will move from linkedlists to a typical vector for preformance reasons
+*/
+struct MessageSubroutine{
+    // Pass in function as arguement
+    void (*func)(MessageReq *ptr);
+    // Which type of message we are looking for
+    MessageData_MessageType msg_type;
+};
+std::list<MessageSubroutine> message_subroutine_list; 
+volatile int num_subroutines = 0; 
+#define MAX_MESSAGE_SUBROUTINE_NUM 32
 
 /* 
 * @brief General call that will let us deal with all of our message management stuff
@@ -31,14 +51,15 @@ void start_message_management(void){
 
     // Start up UDP Management thread!
     xTaskCreatePinnedToCore(
-      udp_management_thread,        /* Function to implement the task */
-      "Message Management Thread",  /* Name of the task */
-      10000,                        /* Stack size in words */
-      NULL,                         /* Task input parameter */
-      32,                           /* Priority of the task */
-      &msg_manage.task_handle,      /* Task handle. */
-      1);                           /* Core where the task should run */
+      udp_management_thread,                    /* Function to implement the task */
+      "Message Management Thread",              /* Name of the task */
+      10000,                                    /* Stack size in words */
+      NULL,                                     /* Task input parameter */
+      32,                                       /* Priority of the task */
+      &msg_manage.udp_server_task_handle,       /* Task handle. */
+      1);                                       /* Core where the task should run */
 }
+
 
 /* 
 * @brief General call that will let us deal with all of our message management stuff
@@ -89,13 +110,13 @@ void create_udp_server(void){
 void end_message_management(void){
     close(msg_manage.socket_handle);
     // Deletes the UDP server. 
-    vTaskDelete(msg_manage.task_handle);
+    vTaskDelete(msg_manage.udp_server_task_handle);
 }
     
 /* 
-* @brief General call that will let us deal with all of our message management stuff
-* @notes Should generally be called at begining of runtime, before other subsytems are generated. 
-* params none
+* @brief Thread space that we will use to deal with all of our udp management stuff in 
+* @notes Don't call all willy nilly since there is a loop in there, and the thread isn't suppose to stop
+* params void *parameters pointer to struct of information
 * returns none
 */
 void udp_management_thread(void *parameters){
@@ -103,9 +124,7 @@ void udp_management_thread(void *parameters){
 
     for(;;){
         start_loop = xTaskGetTickCount();
-
         check_new_data();
-
         // Let program run every 70 milliseconds
         vTaskDelayUntil(&start_loop, 100/portTICK_PERIOD_MS);
     }   
@@ -120,14 +139,64 @@ void udp_management_thread(void *parameters){
 void check_new_data(void){
     struct sockaddr_in rev_addr; 
     int slen = 0; 
-    int len = recvfrom( msg_manage.socket_handle,       // Handler that contains our Socket ID
+    msg_manage.latest_message_length = recvfrom( msg_manage.socket_handle,       // Handler that contains our Socket ID
                         msg_manage.rx_buff,             // Buffer that we will put our socket information into
                         sizeof(msg_manage.rx_buff),     // Size of the buffer that we are giving to the socket
                         MSG_DONTWAIT,                   // Don't block until message has received, just keep through
                         (struct sockaddr *) &rev_addr,  // Place where we can save the address that sends us our information
                         (socklen_t *)&slen);            // Length of the socket packet. 
     // Minimum message size is the messagedata header packet. 
-    if(len >= 16){
+    if(msg_manage.latest_message_length >= 16){
+        // Notice that we only told it to look at the first 16 bits of information
+        // That's because the header will always be 16 bytes no matter what. 
+        msg_manage.latest_message_data = unpack_message_data(msg_manage.rx_buff, 16);  
+        // Choose which request response we have
+        check_req_res();
+    }
+}
 
+/* 
+* @brief Checks which of our request->response systems need to be interrupted 
+* @notes Should only be called from within the udp_message_management file
+* params none
+* returns none
+*/
+void check_req_res(void){
+    // Going through all of our subroutine calls and run their res-req stuff. 
+    for(MessageSubroutine msg_subr: message_subroutine_list){
+            // If we have the latest message, then 
+            if(msg_subr.msg_type == msg_manage.latest_message_data.message_type){
+            // Generate the message, of which we will set a pointer to information
+            MessageReq msg_reg = {
+                // Moving pointer up 16 spots, since we don't need the message
+                // Header anymore. 
+                (msg_manage.rx_buff + 16), 
+                // 
+                msg_manage.latest_message_length
+            };
+            msg_subr.func(&msg_reg);
+        }
+    }
+}
+
+/* 
+* @brief Easy method for dealing with new messages coming into the system 
+* @notes Just makes callbacks easy to deal with, you still need to deal with the deserialization
+* And unpacking yourself. 
+* params MessageData_MessageType which type of message data are we sending?
+* params void(*func)(MessageReq *ptr) callback for dealing with subroutines. 
+* returns MessageSubroutineSetupStatus whether or not we actually go the information we needed. 
+*/
+extern MessageSubroutineSetupStatus add_subroutine_check(MessageData_MessageType msg_type, void(*func)(MessageReq *ptr)){
+    if(num_subroutines > MAX_MESSAGE_SUBROUTINE_NUM){
+        return SUBROUTINE_ADD_FAIL_MAX_NUM_REACHED;       
+    }
+    else{
+        MessageSubroutine new_subroutine; 
+        new_subroutine.func = func;
+        new_subroutine.msg_type = msg_type; 
+        message_subroutine_list.push_back(new_subroutine);
+        num_subroutines++; 
+        return SUBROUTINE_ADD_SUCCESS; 
     }
 }
