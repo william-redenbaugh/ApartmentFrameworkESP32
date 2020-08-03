@@ -10,7 +10,7 @@ void udp_management_thread(void *parameters);
 void check_new_data(void);
 void check_req_res(void);
 void message_management_req_thread(void *parameters);
-extern MessageSubroutineSetupStatus add_subroutine_check(MessageData_MessageType msg_type, void (*func)(MessageReq *ptr));
+extern MessageSubroutineSetupReturn add_subroutine_check(MessageData_MessageType msg_type, void (*func)(MessageReq *ptr));
 
 #define SERVER_PORT 4040
 
@@ -27,7 +27,7 @@ struct {
 
 /*
 * @brief: Struct that helps us deal with message subroutine callbackets
-* @notes: it's possible that we will move from linkedlists to a typical vector for preformance reasons
+* @notes: Switched from linkedlist to predefined array for preformance reasons. 
 */
 struct MessageSubroutine{
     // Pass in function as arguement
@@ -35,9 +35,9 @@ struct MessageSubroutine{
     // Which type of message we are looking for
     MessageData_MessageType msg_type;
 };
-std::list<MessageSubroutine> message_subroutine_list; 
+#define MAX_MESSAGE_SUBROUTINE_NUM 48
+MessageSubroutine message_subroutine_list[MAX_MESSAGE_SUBROUTINE_NUM]; 
 volatile int num_subroutines = 0; 
-#define MAX_MESSAGE_SUBROUTINE_NUM 32
 
 /* 
 * @brief General call that will let us deal with all of our message management stuff
@@ -139,12 +139,12 @@ void udp_management_thread(void *parameters){
 void check_new_data(void){
     struct sockaddr_in rev_addr; 
     int slen = 0; 
-    msg_manage.latest_message_length = recvfrom( msg_manage.socket_handle,       // Handler that contains our Socket ID
-                        msg_manage.rx_buff,             // Buffer that we will put our socket information into
-                        sizeof(msg_manage.rx_buff),     // Size of the buffer that we are giving to the socket
-                        MSG_DONTWAIT,                   // Don't block until message has received, just keep through
-                        (struct sockaddr *) &rev_addr,  // Place where we can save the address that sends us our information
-                        (socklen_t *)&slen);            // Length of the socket packet. 
+    msg_manage.latest_message_length = recvfrom( msg_manage.socket_handle, // Handler that contains our Socket ID
+                        msg_manage.rx_buff,                                // Buffer that we will put our socket information into
+                        sizeof(msg_manage.rx_buff),                        // Size of the buffer that we are giving to the socket
+                        MSG_DONTWAIT,                                      // Don't block until message has received, just keep through
+                        (struct sockaddr *) &rev_addr,                     // Place where we can save the address that sends us our information
+                        (socklen_t *)&slen);                               // Length of the socket packet. 
     // Minimum message size is the messagedata header packet. 
     if(msg_manage.latest_message_length >= 16){
         // Notice that we only told it to look at the first 16 bits of information
@@ -163,18 +163,18 @@ void check_new_data(void){
 */
 void check_req_res(void){
     // Going through all of our subroutine calls and run their res-req stuff. 
-    for(MessageSubroutine msg_subr: message_subroutine_list){
+    for(uint32_t n = 0; n < num_subroutines; n++){
             // If we have the latest message, then 
-            if(msg_subr.msg_type == msg_manage.latest_message_data.message_type){
+            if(message_subroutine_list[n].msg_type == msg_manage.latest_message_data.message_type){
             // Generate the message, of which we will set a pointer to information
-            MessageReq msg_reg = {
+                MessageReq msg_reg = {
                 // Moving pointer up 16 spots, since we don't need the message
                 // Header anymore. 
                 (msg_manage.rx_buff + 16), 
                 // How long the message is minus the 
                 (msg_manage.latest_message_length - 16)
             };
-            msg_subr.func(&msg_reg);
+            message_subroutine_list[n].func(&msg_reg);
         }
     }
 }
@@ -187,16 +187,39 @@ void check_req_res(void){
 * params void(*func)(MessageReq *ptr) callback for dealing with subroutines. 
 * returns MessageSubroutineSetupStatus whether or not we actually go the information we needed. 
 */
-extern MessageSubroutineSetupStatus add_subroutine_check(MessageData_MessageType msg_type, void(*func)(MessageReq *ptr)){
+extern MessageSubroutineSetupReturn add_subroutine_check(MessageData_MessageType msg_type, void(*func)(MessageReq *ptr)){
     if(num_subroutines > MAX_MESSAGE_SUBROUTINE_NUM){
-        return SUBROUTINE_ADD_FAIL_MAX_NUM_REACHED;       
+        MessageSubroutineSetupReturn err_msg = {SUBROUTINE_ADD_FAIL_MAX_NUM_REACHED, 0};
+        return err_msg;
     }
     else{
-        MessageSubroutine new_subroutine; 
-        new_subroutine.func = func;
-        new_subroutine.msg_type = msg_type; 
-        message_subroutine_list.push_back(new_subroutine);
+        message_subroutine_list[num_subroutines].func = func;
+        message_subroutine_list[num_subroutines].msg_type = msg_type;
+        MessageSubroutineSetupReturn success_msg = {SUBROUTINE_ADD_FAIL_MAX_NUM_REACHED, (uint32_t)num_subroutines};
         num_subroutines++; 
-        return SUBROUTINE_ADD_SUCCESS; 
+        return success_msg; 
     }
+}
+
+/* 
+* @brief Easy method for removing a callback from the list. 
+* @notes Just makes callbacks easy to deal with, you still need to deal with the deserialization
+* And unpacking yourself. 
+* params uint32_t id of which message callback we want to remove.  
+* returns MessageSubroutineSetupStatus whether or not we actually go the information we needed. 
+*/
+extern MessageSubroutineSetupStatus remove_message_callback(uint32_t id){
+    if(id < num_subroutines){
+        // Moving all the values down the array. The hope is this function won't be called too often, since this takes O(n) time
+        for(id = id; id < num_subroutines-1; id++)
+            message_subroutine_list[id] = message_subroutine_list[id+1];
+        
+        // Clear out last value in the array 
+        memset(&message_subroutine_list[num_subroutines-1], 0, sizeof(MessageSubroutine));
+        num_subroutines--; 
+        return SUBROUTINE_REMOVE_SUCCESS;
+    }   
+    // If we are trying to reach a subroutine that hasn't been touched yet. 
+    else 
+        return SUBROUTINE_REMOVE_OUT_OF_BOUMDS;
 }

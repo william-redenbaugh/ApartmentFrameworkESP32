@@ -21,7 +21,15 @@ void end_message_management_thread(void);
 enum MessageSubroutineSetupStatus{
     SUBROUTINE_ADD_SUCCESS, 
     SUBROUTINE_ADD_FAIL_MAX_NUM_REACHED, 
-    SUBROUTINE_ADD_FAIL_UNKNOWN 
+    SUBROUTINE_ADD_FAIL_UNKNOWN, 
+    SUBROUTINE_REMOVE_SUCCESS, 
+    SUBROUTINE_REMOVE_OUT_OF_BOUMDS,
+    SUBROUTINE_REMOVE_FAIL_UNKNOWN
+};
+
+struct MessageSubroutineSetupReturn{
+    MessageSubroutineSetupStatus setup_status; 
+    uint32_t callback_handler_id; 
 };
 
 struct MessageReq{
@@ -30,5 +38,5 @@ struct MessageReq{
     // Pointer to our message length
     int data_len; 
 };
-extern MessageSubroutineSetupStatus add_subroutine_check(MessageData_MessageType msg_type, void (*func)(MessageReq *ptr));
+extern MessageSubroutineSetupReturn add_subroutine_check(MessageData_MessageType msg_type, void (*func)(MessageReq *ptr));
 #endif 
