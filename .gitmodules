@@ -13,3 +13,6 @@
 [submodule "ESP32Clock/lib/Arduino-LiquidCrystal-I2C-library"]
 	path = ESP32Clock/lib/Arduino-LiquidCrystal-I2C-library
 	url = https://github.com/fdebrabander/Arduino-LiquidCrystal-I2C-library.git
+[submodule "HeaatApartmentIntegration"]
+	path = HeaatApartmentIntegration
+	url = git@github.com:william-redenbaugh/HeaatApartmentIntegration.git
